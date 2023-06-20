@@ -7,16 +7,14 @@ const redisClient=redis.createClient()
 const DEFAULT_EXIPRATION=3600
 
 app.use(express.json())
-app.use(express.urlencoded({extended:true}))
 app.use(cors())
 function getOrSetCache(key,cb){
-    console.log(key,"this is the key ")
     return new Promise((resolve,reject)=>{
             redisClient.get(key,async(error,data)=>{
                 if(error) return reject(error);
                 if(data!=null) return resolve(JSON.parse(data))
                 const fetchdata=await cb()
-                await redisClient.setEx(key,DEFAULT_EXIPRATION,JSON.stringify(fetchdata))
+                redisClient.setEx(key,DEFAULT_EXIPRATION,JSON.stringify(fetchdata))
                 resolve(fetchdata)
         })
         })
@@ -24,26 +22,46 @@ function getOrSetCache(key,cb){
 app.get("/photos",async(req,res)=>{
     try{
     await redisClient.connect()
-    const albumId=req.query.albumId
-    const photos=await getOrSetCache(`photos?albumId=${albumId}`,async()=>{
-        const {data}=await axios.get(`https://jsonplaceholder.typicode.com/photos`,{params:{albumId}})
-        return data
-    })
-    // await redisClient.quit()
-    res.json(photos)
+    const albumid=req.query.albumId
+    // console.log(albumid)
+  const photos= await redisClient.get(`photos?albumId=${albumid}`)
+        // if(error) console.log(error)
+        if(photos!=null){
+            console.log("Cache hit")
+            await redisClient.quit()
+            return res.json(JSON.parse(photos))
+        }else{
+            console.log("Cache Miss")
+              const {data}=await axios.get("https://jsonplaceholder.typicode.com/photos",{params:{albumid}})
+            await redisClient.setEx(`photos?albumId=${albumid}`,DEFAULT_EXIPRATION,JSON.stringify(data))
+            await redisClient.quit()
+              res.json(data)
+        }
 }catch(err){
     res.json(err.message)
 }
 })
 
 app.get("/photos/:id",async(req,res)=>{
-    await redisClient.connect()
-    const photos=await getOrSetCache(`photos:${req.params.id}`,async()=>{
-        const {data}=await axios.get(`https://jsonplaceholder.typicode.com/photos/${req.params.id}`)
-        return data
-    })
-    res.json(photos)
-
+    try{
+        await redisClient.connect()
+        const id=req.params.id
+        // console.log(albumid)
+      const photos= await redisClient.get(`photos/id=${id}`)
+            // if(error) console.log(error)
+            if(photos!=null){
+                console.log("Cache hit")
+                await redisClient.quit()
+                return res.json(JSON.parse(photos))
+            }else{
+          const {data}=await axios.get(`https://jsonplaceholder.typicode.com/photos/${id}`)
+          await redisClient.setEx(`photos/id=${id}`,DEFAULT_EXIPRATION,JSON.stringify(data))
+          await redisClient.quit()
+            res.json(data)
+            }
+        }catch(err){
+            res.json(err.message)
+        }
 })
 
 
