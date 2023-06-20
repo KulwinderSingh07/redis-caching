@@ -1,0 +1,46 @@
+# set the ky value pair name & kulwinder respectively
+set name kulwinder
+
+# get all keys 
+keys *
+
+# check the existence of the key name
+exists name
+
+# get the key's value name
+get name
+
+# flush all the key value pairs saved
+flushall
+
+# time to expire of the key name
+ttl name
+
+# set expire time for name
+expire name 10
+
+# set expire time for key name and value kulwinder
+setex name 10 kulwinder
+
+#left side push in array
+lpush friends kulwinder
+rpush friends laddi
+
+# get the list of array names friends 0=starting index,-1=ending index
+lrange friends 0 -1
+
+# pop out the element from array
+rpop
+lpop
+
+#sets
+sadd hobbies "weight lifting"
+smembers hobbies
+srem hobbies "weight lifting"
+
+#hash map
+hset person name kulwinder
+hget person name
+hgetall person
+hdel person name
+hexists person name
